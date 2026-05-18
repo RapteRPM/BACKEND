@@ -15,18 +15,42 @@ import ExcelJS from 'exceljs';
 import fs from 'fs';
 import axios from 'axios';
 import multer from 'multer';
-import pool from './config/db.js'; // ✅ usamos pool, import moderno
+import pool from './config/db.js'; 
 import { crearCredenciales } from './controllers/credenciales.js';
-import crypto from 'crypto'; // Para generar tokens seguros
+import crypto from 'crypto'; 
 import enviarCorreo from './controllers/enviarCorreo.js';
-import bcrypt from 'bcrypt'; // Para hashear contraseñas
+import bcrypt from 'bcrypt'; 
+import cors from 'cors';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
+// 🌐 Configuración CORS
+const allowedOrigins = process.env.FRONTEND_URLS
+  ? process.env.FRONTEND_URLS.split(',')
+  : [];
+
+console.log('📡 Frontends permitidos:', allowedOrigins);
+
+app.use(cors({
+  origin: function(origin, callback) {
+
+    // Permitir requests sin origin (Postman, mobile apps, etc.)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.error('❌ CORS bloqueado para:', origin);
+      callback(new Error('No permitido por CORS'));
+    }
+  },
+  credentials: true
+}));
 const port = process.env.PORT || 3000;
 const sessionSecret = process.env.SESSION_SECRET || 'clave-secreta-rpm';
+
 
 // Configuración general
 app.use("/api/privado", verificarSesion); 
@@ -34,6 +58,8 @@ app.use(express.json());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use("/imagen", express.static(path.join(__dirname, "public/imagen")));
+
+
 
 // ===============================
 // 🏥 Health Check para Railway
