@@ -1477,7 +1477,7 @@ app.post(
           data.Correo,
           fotoRuta,
           JSON.stringify(datosPerfil),
-          fechaExpiracion.toISOString()
+          fechaExpiracionSQL
         ]
       );
 
