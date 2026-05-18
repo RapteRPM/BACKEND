@@ -9,6 +9,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 import express from 'express';
 import bodyParser from 'body-parser';
+import cors from 'cors';
 import path from 'path';
 import session from 'express-session';
 import ExcelJS from 'exceljs';
@@ -20,37 +21,80 @@ import { crearCredenciales } from './controllers/credenciales.js';
 import crypto from 'crypto'; 
 import enviarCorreo from './controllers/enviarCorreo.js';
 import bcrypt from 'bcrypt'; 
-import cors from 'cors';
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-// 🌐 Configuración CORS
-const allowedOrigins = process.env.FRONTEND_URLS
+const port = process.env.PORT || 3000;
+// ===============================
+// 🌐 Configuración de CORS
+// ===============================
+// Obtener URLs del frontend desde variables de entorno o usar valores por defecto
+const allowedOrigins = process.env.FRONTEND_URLS 
   ? process.env.FRONTEND_URLS.split(',')
-  : [];
+  : [
+      'http://localhost:5500',
+      'http://127.0.0.1:5500',
+      'http://localhost:5501',
+      'http://127.0.0.1:5501'
+    ];
 
-console.log('📡 Frontends permitidos:', allowedOrigins);
-
-app.use(cors({
-  origin: function(origin, callback) {
-
-    // Permitir requests sin origin (Postman, mobile apps, etc.)
-    if (!origin) return callback(null, true);
-
-    if (allowedOrigins.includes(origin)) {
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Permitir peticiones sin origin (ej: Postman, curl) en desarrollo
+    if (!origin && process.env.NODE_ENV === 'development') {
+      return callback(null, true);
+    }
+    
+    // En desarrollo, permitir todos los orígenes locales
+    if (process.env.NODE_ENV === 'development' && origin) {
+      if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
+        return callback(null, true);
+      }
+    }
+    
+    // Verificar si el origin está en la lista permitida
+    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
       callback(null, true);
     } else {
-      console.error('❌ CORS bloqueado para:', origin);
-      callback(new Error('No permitido por CORS'));
+      console.log(`❌ CORS bloqueó petición desde: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
-}));
-const port = process.env.PORT || 3000;
-const sessionSecret = process.env.SESSION_SECRET || 'clave-secreta-rpm';
+  credentials: true, // Permitir envío de cookies/sesiones
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  exposedHeaders: ['set-cookie']
+};
 
+app.use(cors(corsOptions));
+
+// Log para debugging CORS
+app.use((req, res, next) => {
+  const origin = req.headers.origin || 'sin origin';
+  console.log(`📨 ${req.method} ${req.path} - Origin: ${origin}`);
+  next();
+});
+
+// ===============================
+// 🔐 Configuración de sesiones
+// ===============================
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || 'clave-secreta-rpm',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: false, // Cambiar a true en producción con HTTPS
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 24 * 60 * 60 * 1000 // 24 horas
+    },
+  })
+);
 
 // Configuración general
 app.use("/api/privado", verificarSesion); 
