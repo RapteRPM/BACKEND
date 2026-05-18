@@ -146,22 +146,8 @@ app.get('/api/db-status', async (req, res) => {
 
 
 // ===============================
-// 🔐 Configuración de sesiones
+// 🧹 Limpieza de caché para rutas protegidas
 // ===============================
-app.use(
-  session({
-    secret: sessionSecret,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      // Sin maxAge - la sesión termina al cerrar el navegador
-      httpOnly: true,
-      secure: false, // Cambiar a true en producción con HTTPS
-      sameSite: 'lax',
-      path: '/' // Asegurar que la cookie esté disponible en todas las rutas
-    },
-  })
-);
 
 // Evitar caché en páginas protegidas
 app.use((req, res, next) => {
