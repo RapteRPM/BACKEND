@@ -1454,14 +1454,18 @@ app.post(
 
       // Generar token único
       const token = generarToken();
-      const fechaExpiracion = new Date();
-      fechaExpiracion.setHours(fechaExpiracion.getHours() + 24); // 24 horas para completar
+      const fechaExpiracion = new Date()
+      fechaExpiracion.setHours(fechaExpiracion.getHours() + 24);
+      const fechaExpiracionSQL = fechaExpiracion
+        .toISOString()
+        .slice(0, 19)
+        .replace('T', ' ');
 
       // Guardar en registros_pendientes (NO en usuario)
       await queryPromise(
         `INSERT INTO registros_pendientes 
           (Token, IdUsuario, TipoUsuario, Nombre, Apellido, Documento, Telefono, Correo, FotoPerfil, DatosPerfil, FechaExpiracion)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           token,
           idUsuarioValue,
