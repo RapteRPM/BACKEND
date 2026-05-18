@@ -1,6 +1,7 @@
 // ===============================
 // 📦 Importaciones
 // ===============================
+import 'dotenv/config';
 import { verificarSesion, evitarCache } from './middlewares/sesion.js';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -8,7 +9,6 @@ import dotenv from 'dotenv';
 dotenv.config();
 import express from 'express';
 import bodyParser from 'body-parser';
-import cors from 'cors';
 import path from 'path';
 import session from 'express-session';
 import ExcelJS from 'exceljs';
@@ -26,82 +26,13 @@ const __dirname = dirname(__filename);
 
 const app = express();
 const port = process.env.PORT || 3000;
-
-// ===============================
-// 🌐 Configuración de CORS
-// ===============================
-// Obtener URLs del frontend desde variables de entorno o usar valores por defecto
-const allowedOrigins = process.env.FRONTEND_URLS 
-  ? process.env.FRONTEND_URLS.split(',')
-  : [
-      'http://localhost:5500',
-      'http://127.0.0.1:5500',
-      'http://localhost:5501',
-      'http://127.0.0.1:5501'
-    ];
-
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Permitir peticiones sin origin (ej: Postman, curl) en desarrollo
-    if (!origin && process.env.NODE_ENV === 'development') {
-      return callback(null, true);
-    }
-    
-    // En desarrollo, permitir todos los orígenes locales
-    if (process.env.NODE_ENV === 'development' && origin) {
-      if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
-        return callback(null, true);
-      }
-    }
-    
-    // Verificar si el origin está en la lista permitida
-    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
-      callback(null, true);
-    } else {
-      console.log(`❌ CORS bloqueó petición desde: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true, // Permitir envío de cookies/sesiones
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
-  exposedHeaders: ['set-cookie']
-};
-
-app.use(cors(corsOptions));
-
-// Log para debugging CORS
-app.use((req, res, next) => {
-  const origin = req.headers.origin || 'sin origin';
-  console.log(`📨 ${req.method} ${req.path} - Origin: ${origin}`);
-  next();
-});
-
-// ===============================
-// 🔐 Configuración de sesiones
-// ===============================
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || 'clave-secreta-rpm',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      secure: false, // Cambiar a true en producción con HTTPS
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 24 * 60 * 60 * 1000 // 24 horas
-    },
-  })
-);
+const sessionSecret = process.env.SESSION_SECRET || 'clave-secreta-rpm';
 
 // Configuración general
 app.use("/api/privado", verificarSesion); 
 app.use(express.json());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
-// Servir archivos de imágenes (uploads)
 app.use("/imagen", express.static(path.join(__dirname, "public/imagen")));
 
 // ===============================
@@ -143,29 +74,26 @@ app.get('/api/db-status', async (req, res) => {
   }
 });
 
+
 // ===============================
-// 🧪 Test CORS - Endpoint de prueba
+// 🔐 Configuración de sesiones
 // ===============================
-app.get('/api/test-cors', (req, res) => {
-  res.json({
-    success: true,
-    message: 'CORS funcionando correctamente',
-    origin: req.headers.origin || 'sin origin',
-    timestamp: new Date().toISOString()
-  });
-});
+app.use(
+  session({
+    secret: sessionSecret,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      // Sin maxAge - la sesión termina al cerrar el navegador
+      httpOnly: true,
+      secure: false, // Cambiar a true en producción con HTTPS
+      sameSite: 'lax',
+      path: '/' // Asegurar que la cookie esté disponible en todas las rutas
+    },
+  })
+);
 
-app.post('/api/test-cors', (req, res) => {
-  res.json({
-    success: true,
-    message: 'POST con CORS funcionando',
-    data: req.body,
-    origin: req.headers.origin || 'sin origin'
-  });
-});
-
-
-// Evitar caché en respuestas API
+// Evitar caché en páginas protegidas
 app.use((req, res, next) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.setHeader('Pragma', 'no-cache');
@@ -174,47 +102,14 @@ app.use((req, res, next) => {
 });
 
 // ===============================
-// 🏠 Ruta raíz - Información de la API
+// 🏠 Ruta raíz - Redireccionar al índice
 // ===============================
 app.get('/', (req, res) => {
   res.json({
-    nombre: 'RPM Market API',
-    version: '2.0.0',
-    descripcion: 'Backend API para RPM Market',
-    estado: 'Operativo',
-    frontend: 'https://github.com/RapteRPM/Perfil',
-    endpoints: {
-      health: '/health',
-      dbStatus: '/api/db-status',
-      autenticacion: {
-        login: 'POST /api/login',
-        logout: 'POST /api/logout',
-        verificarSesion: 'GET /api/verificar-sesion'
-      },
-      usuarios: {
-        listar: 'GET /api/usuarios',
-        crear: 'POST /api/usuarios',
-        actualizar: 'PUT /api/usuarios/:id',
-        eliminar: 'DELETE /api/usuarios/:id'
-      },
-      publicaciones: {
-        listar: 'GET /api/publicaciones',
-        crear: 'POST /api/publicaciones',
-        actualizar: 'PUT /api/publicaciones/:id',
-        eliminar: 'DELETE /api/publicaciones/:id'
-      },
-      imagenes: 'GET /imagen/:ruta'
-    },
-    cors: {
-      habilitado: true,
-      origenes: ['http://localhost:5500', 'http://127.0.0.1:5500']
-    },
-    documentacion: {
-      backend: 'README-BACKEND.md',
-      migracion: 'MIGRATION-GUIDE.md',
-      ejemplosFrontend: 'FRONTEND-CONFIG-EXAMPLE.js'
-    },
-    mensaje: '✅ Este es un backend API. Use los endpoints listados arriba para interactuar con el servicio.'
+    service: 'rpm-market-backend',
+    status: 'running',
+    health: '/health',
+    api: '/api/db-status'
   });
 });
 
@@ -336,19 +231,13 @@ app.post('/api/login', async (req, res) => {
       
       console.log("✅ Sesión guardada correctamente");
       
-      // Redirección automática para administradores
-      let redirect = null;
-      if (req.session.usuario.tipo === "Administrador") {
-        redirect = "/Administrador/panel_admin.html";
-      }
-      
       res.json({
         success: true,
         message: "Inicio de sesión exitoso",
         tipo: req.session.usuario.tipo,
         usuario: req.session.usuario.nombre,
         idUsuario: req.session.usuario.id,
-        redirect: redirect
+        redirect: null
       });
     });
 
@@ -563,35 +452,10 @@ app.get('/logout', (req, res) => {
     // 🧹 Limpia cookies de sesión para mayor seguridad
     res.clearCookie('connect.sid', { path: '/' });
 
-    // 🔄 Redirige al login con script para limpiar localStorage
-    res.send(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Cerrando sesión...</title>
-      </head>
-      <body>
-        <script>
-          // Limpiar localStorage
-          localStorage.removeItem('usuarioActivo');
-          localStorage.removeItem('productoCompra');
-          localStorage.clear();
-          
-          // Limpiar sessionStorage
-          sessionStorage.clear();
-          
-          // Evitar que se pueda volver atrás con caché
-          window.history.pushState(null, '', window.location.href);
-          window.onpopstate = function() {
-            window.history.pushState(null, '', window.location.href);
-          };
-          
-          // Redirigir al login
-          window.location.replace('/General/Ingreso.html');
-        </script>
-      </body>
-      </html>
-    `);
+    res.json({
+      success: true,
+      message: 'Sesión cerrada correctamente'
+    });
   });
 });
 
@@ -626,10 +490,7 @@ app.get('/api/verificar-sesion', (req, res) => {
 // 🏁 Iniciar servidor
 // ===============================
 app.listen(port, () => {
-  console.log(`🚀 Backend API escuchando en: http://localhost:${port}`);
-  console.log(`📡 CORS habilitado para: localhost:5500 + GitHub Codespaces`);
-  console.log(`🔍 Health check: http://localhost:${port}/health`);
-  console.log(`🗄️ DB Status: http://localhost:${port}/api/db-status`);
+  console.log(`🚀 Servidor API escuchando en: http://localhost:${port}`);
 });
 
 // ----------------------
@@ -3565,10 +3426,10 @@ app.get('/api/detallePublicacion/:id', async (req, res) => {
     }
 });
 
-
 //AGREGAR AL CARRITO//
 
 // Middleware
+
 app.use(express.urlencoded({ extended: true }));
 
 // ✅ Ruta para agregar producto al carrito
