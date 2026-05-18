@@ -4,6 +4,8 @@
 import { verificarSesion, evitarCache } from './middlewares/sesion.js';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import dotenv from 'dotenv';
+dotenv.config();
 import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
