@@ -1,36 +1,28 @@
 // controllers/enviarCorreo.js
+import { Resend } from 'resend';
 import dotenv from 'dotenv';
-import nodemailer from 'nodemailer';
 
 dotenv.config();
 
-const smtpHost = process.env.EMAIL_HOST || 'smtp.gmail.com';
-const smtpPort = Number(process.env.EMAIL_PORT || 465);
-const smtpSecure = String(process.env.EMAIL_SECURE || 'true').toLowerCase() === 'true';
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const enviarCorreo = async ({ to, subject, html }) => {
-  const transporter = nodemailer.createTransport({
-    host: smtpHost,
-    port: smtpPort,
-    secure: smtpSecure,
-    connectionTimeout: 15000,
-    greetingTimeout: 15000,
-    socketTimeout: 20000,
-    auth: {
-      user: process.env.EMAIL_USER || "rpmservice2026@gmail.com",
-      pass: process.env.EMAIL_PASS
-    },
-    tls: { rejectUnauthorized: false }
-  });
-
+  const fromEmail = process.env.EMAIL_FROM || 'noreply@rpmmarket.com';
+  
   try {
-    await transporter.sendMail({
-      from: `"RPMMarket" <${process.env.EMAIL_USER || 'rpmservice2026@gmail.com'}>`,
+    const result = await resend.emails.send({
+      from: fromEmail,
       to,
       subject,
       html
     });
-    console.log(`📨 Correo enviado correctamente a ${to}`);
+
+    if (result.error) {
+      throw new Error(result.error.message);
+    }
+
+    console.log(`📨 Correo enviado correctamente a ${to} (ID: ${result.data.id})`);
+    return result.data;
   } catch (err) {
     console.warn("⚠️ No se pudo enviar el correo:", err.message);
     throw err;
