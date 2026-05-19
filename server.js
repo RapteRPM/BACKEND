@@ -161,7 +161,7 @@ const corsOptions = {
   },
   credentials: true, // Permitir envío de cookies/sesiones
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Expires', 'expires'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Expires', 'expires', 'Cache-Control', 'cache-control'],
   exposedHeaders: ['set-cookie']
 };
 
@@ -726,7 +726,7 @@ app.get('/api/historial', async (req, res) => {
         ca.FechaServicio AS fechaEntrega,
         ca.HoraServicio AS horaEntrega,
         ca.ModoServicio AS modoEntrega,
-        ca.FechaModificadaPor AS fechaModificada,
+        NULL AS fechaModificada,
         ca.NotificacionVista AS notificacionVista,
         ca.IdSolicitud AS idSolicitudComercio,
         uc.Telefono AS telefonoComercio,
@@ -3184,11 +3184,10 @@ app.put('/api/actualizar-fecha-pedido', async (req, res) => {
 
   try {
     // Actualizar fecha y hora en controlagendacomercio
-    // Marcar FechaModificadaPor y NotificacionVista = 0 para que el usuario vea la notificación
-    const ahora = new Date().toISOString();
+    // Marcar NotificacionVista = 0 para que el usuario vea la notificación
     await queryPromise(
-      'UPDATE controlagendacomercio SET FechaServicio = ?, HoraServicio = ?, FechaModificadaPor = ?, NotificacionVista = 0 WHERE IdSolicitud = ?',
-      [fecha, hora, ahora, id]
+      'UPDATE controlagendacomercio SET FechaServicio = ?, HoraServicio = ?, NotificacionVista = 0 WHERE IdSolicitud = ?',
+      [fecha, hora, id]
     );
 
     res.json({ 
