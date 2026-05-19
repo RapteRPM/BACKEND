@@ -28,6 +28,7 @@ const __dirname = dirname(__filename);
 
 const app = express();
 const port = process.env.PORT || 3000;
+const isProduction = process.env.NODE_ENV === 'production';
 // ===============================
 // 🌐 Configuración de CORS
 // ===============================
@@ -71,6 +72,9 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+// Railway / proxies inversos necesitan esto para que secure cookies funcionen bien
+app.set('trust proxy', 1);
+
 // Log para debugging CORS
 app.use((req, res, next) => {
   const origin = req.headers.origin || 'sin origin';
@@ -88,8 +92,8 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: false, // Cambiar a true en producción con HTTPS
-      sameSite: 'lax',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
       path: '/',
       maxAge: 24 * 60 * 60 * 1000 // 24 horas
     },
