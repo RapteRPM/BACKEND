@@ -1572,40 +1572,14 @@ app.post('/api/enviar-codigo-verificacion', async (req, res) => {
         [codigo, registroPendiente.IdRegistro]
       );
 
-      // Enviar correo con el código
-      const correoDestino = registroPendiente.Correo;
-      const nombreUsuario = `${registroPendiente.Nombre} ${registroPendiente.Apellido}`;
-
-      await enviarCorreo({
-        to: correoDestino,
-        subject: '🔐 Código de Verificación - RPM Market',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="text-align: center; background: linear-gradient(135deg, #d10000 0%, #a30000 100%); padding: 30px; border-radius: 10px 10px 0 0;">
-              <h1 style="color: white; margin: 0;">🔐 Código de Verificación</h1>
-            </div>
-            <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
-              <p style="font-size: 16px;">Hola <strong>${nombreUsuario}</strong>,</p>
-              <p style="font-size: 16px;">Tu código de verificación para completar el registro en RPM Market es:</p>
-              <div style="text-align: center; margin: 30px 0;">
-                <span style="background: linear-gradient(135deg, #d10000 0%, #a30000 100%); color: white; font-size: 36px; font-weight: bold; padding: 15px 40px; border-radius: 10px; letter-spacing: 10px;">${codigo}</span>
-              </div>
-              <p style="font-size: 14px; color: #666;">Este código es válido por <strong>10 minutos</strong>.</p>
-              <p style="font-size: 14px; color: #666;">Si no solicitaste este código, puedes ignorar este correo.</p>
-              <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-              <p style="font-size: 12px; color: #999; text-align: center;">RPM Market - Tu mercado de repuestos y servicios</p>
-            </div>
-          </div>
-        `
-      });
-
-      const correoOculto = correoDestino.replace(/(.{2})(.*)(@.*)/, '$1***$3');
-      console.log(`📧 Código de verificación enviado a ${correoDestino} (registro pendiente)`);
+      console.log(`🟢 Código de verificación generado para registro pendiente ${registroPendiente.IdRegistro}`);
 
       return res.json({
         success: true,
-        mensaje: 'Código de verificación enviado',
-        correo: correoOculto
+        mensaje: 'Código de verificación generado',
+        codigo,
+        token,
+        correo: registroPendiente.Correo.replace(/(.{2})(.*)(@.*)/, '$1***$3')
       });
     }
 
@@ -1639,42 +1613,14 @@ app.post('/api/enviar-codigo-verificacion', async (req, res) => {
       [codigo, tokenData.IdToken]
     );
 
-    // Enviar correo con el código
-    const correoDestino = tokenData.Correo;
-    const nombreUsuario = `${tokenData.Nombre} ${tokenData.Apellido}`;
-
-    await enviarCorreo({
-      to: correoDestino,
-      subject: '🔐 Código de Verificación - RPM Market',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="text-align: center; background: linear-gradient(135deg, #d10000 0%, #a30000 100%); padding: 30px; border-radius: 10px 10px 0 0;">
-            <h1 style="color: white; margin: 0;">🔐 Código de Verificación</h1>
-          </div>
-          <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
-            <p style="font-size: 16px;">Hola <strong>${nombreUsuario}</strong>,</p>
-            <p style="font-size: 16px;">Tu código de verificación para completar el registro en RPM Market es:</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <span style="background: linear-gradient(135deg, #d10000 0%, #a30000 100%); color: white; font-size: 36px; font-weight: bold; padding: 15px 40px; border-radius: 10px; letter-spacing: 10px;">${codigo}</span>
-            </div>
-            <p style="font-size: 14px; color: #666;">Este código es válido por <strong>10 minutos</strong>.</p>
-            <p style="font-size: 14px; color: #666;">Si no solicitaste este código, puedes ignorar este correo.</p>
-            <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-            <p style="font-size: 12px; color: #999; text-align: center;">RPM Market - Tu mercado de repuestos y servicios</p>
-          </div>
-        </div>
-      `
-    });
-
-    // Ocultar parte del correo para la respuesta
-    const correoOculto = correoDestino.replace(/(.{2})(.*)(@.*)/, '$1***$3');
-
-    console.log(`📧 Código de verificación enviado a ${correoDestino} para usuario ${tokenData.Usuario}`);
+    console.log(`🟢 Código de verificación generado para token ${token}`);
 
     res.json({
       success: true,
-      mensaje: 'Código de verificación enviado',
-      correo: correoOculto
+      mensaje: 'Código de verificación generado',
+      codigo,
+      token,
+      correo: tokenData.Correo.replace(/(.{2})(.*)(@.*)/, '$1***$3')
     });
 
   } catch (error) {
@@ -1798,34 +1744,14 @@ app.post('/api/reenviar-codigo', async (req, res) => {
         [nuevoCodigo, registroPendiente.IdRegistro]
       );
 
-      // Enviar correo
-      await enviarCorreo({
-        to: registroPendiente.Correo,
-        subject: '🔐 Nuevo Código de Verificación - RPM Market',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="text-align: center; background: linear-gradient(135deg, #d10000 0%, #a30000 100%); padding: 30px; border-radius: 10px 10px 0 0;">
-              <h1 style="color: white; margin: 0;">🔐 Nuevo Código</h1>
-            </div>
-            <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
-              <p style="font-size: 16px;">Hola <strong>${registroPendiente.Nombre}</strong>,</p>
-              <p style="font-size: 16px;">Tu nuevo código de verificación es:</p>
-              <div style="text-align: center; margin: 30px 0;">
-                <span style="background: linear-gradient(135deg, #d10000 0%, #a30000 100%); color: white; font-size: 36px; font-weight: bold; padding: 15px 40px; border-radius: 10px; letter-spacing: 10px;">${nuevoCodigo}</span>
-              </div>
-              <p style="font-size: 14px; color: #666;">Este código es válido por <strong>10 minutos</strong>.</p>
-            </div>
-          </div>
-        `
-      });
-
-      const correoOculto = registroPendiente.Correo.replace(/(.{2})(.*)(@.*)/, '$1***$3');
-      console.log(`📧 Nuevo código enviado a ${registroPendiente.Correo} (registro pendiente)`);
+      console.log(`🟢 Nuevo código generado para registro pendiente ${registroPendiente.IdRegistro}`);
 
       return res.json({
         success: true,
-        mensaje: 'Nuevo código enviado',
-        correo: correoOculto
+        mensaje: 'Nuevo código generado',
+        codigo: nuevoCodigo,
+        token,
+        correo: registroPendiente.Correo.replace(/(.{2})(.*)(@.*)/, '$1***$3')
       });
     }
 
@@ -5199,39 +5125,23 @@ app.post('/api/admin/usuario/:id/toggle-estado', verificarAdmin, async (req, res
 });
 
 // ===============================
-// Eliminar usuario
+// Eliminar usuario y registros relacionados
 // ===============================
 app.delete('/api/admin/usuario/:id', verificarAdmin, async (req, res) => {
-  const { id } = req.params;
-
   try {
-    console.log(`🗑️ Eliminando usuario ${id}`);
+    const { id } = req.params;
 
-    // Verificar que el usuario existe
-    const usuario = await queryPromise(
-      'SELECT * FROM usuario WHERE IdUsuario = ?',
-      [id]
-    );
-
-    if (usuario.length === 0) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
-    }
-
-    // Eliminar registros relacionados en cascada
-    console.log('🗑️ Eliminando registros relacionados...');
-    
-    // Función auxiliar para eliminar de forma segura con mejor manejo de errores
     const eliminarSeguro = async (query, params, descripcion) => {
       try {
         const result = await queryPromise(query, params);
         console.log(`✅ ${descripcion}`);
-        return true;
+        return result;
       } catch (error) {
         console.log(`⚠️ ${descripcion} - ${error.message}`);
         return false;
       }
     };
-    
+
     // 1. Eliminar tokens de verificación
     await eliminarSeguro('DELETE FROM tokens_verificacion WHERE Usuario = ?', [id], 'Tokens eliminados');
     
