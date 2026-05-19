@@ -2641,7 +2641,7 @@ app.get('/api/publicaciones/:id', async (req, res) => {
         NombreProducto,
         Descripcion,
         Categoria AS IdCategoria,
-        (SELECT NombreCategoria FROM categoria WHERE IdCategoria = Publicacion.Categoria) AS NombreCategoria,
+        (SELECT NombreCategoria FROM categoria WHERE IdCategoria = publicacion.Categoria) AS NombreCategoria,
         Precio,
         ImagenProducto
       FROM publicacion
@@ -4561,7 +4561,7 @@ app.get("/api/perfilPrestador/:idUsuario", async (req, res) => {
 
   try {
     const [rows] = await pool.query(
-      `SELECT Nombre, Correo, Telefono, FotoPerfil FROM Usuario WHERE IdUsuario = ?`,
+      `SELECT Nombre, Correo, Telefono, FotoPerfil FROM usuario WHERE IdUsuario = ?`,
       [idUsuario]
     );
 
@@ -4589,7 +4589,7 @@ app.put("/api/actualizarPerfilPrestador/:idUsuario", uploadPublicacionPrestador.
 
   try {
     const [usuarioRows] = await pool.query(
-      "SELECT Nombre, Apellido, Correo, Telefono, FotoPerfil FROM Usuario WHERE IdUsuario = ?",
+      "SELECT Nombre, Apellido, Correo, Telefono, FotoPerfil FROM usuario WHERE IdUsuario = ?",
       [idUsuario]
     );
 
