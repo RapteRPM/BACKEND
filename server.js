@@ -3856,7 +3856,7 @@ app.post("/api/finalizar-compra", async (req, res) => {
     // 3️⃣ Insertar factura con estado "Proceso pendiente"
     const insertFactura = await queryPromise(
       `INSERT INTO factura (Usuario, TotalPago, MetodoPago, Estado, FechaCompra)
-       VALUES (?, ?, ?, ?, datetime('now'))`,
+       VALUES (?, ?, ?, ?, NOW())`,
       [usuarioId, totalCompra, metodoPago, 'Proceso pendiente']
     );
 
@@ -5748,7 +5748,7 @@ app.get('/api/admin/pqr', verificarAdmin, async (req, res) => {
     console.log("📝 Cargando todas las PQR");
 
     const pqrs = await queryPromise(
-      `SELECT ca.IdAyuda as IdCentroAyuda, 
+            `SELECT ca.IdAyuda as IdCentroAyuda, 
               u.Correo as Perfil,
               ca.TipoSolicitud, 
               ca.Rol, 
@@ -5758,7 +5758,7 @@ app.get('/api/admin/pqr', verificarAdmin, async (req, res) => {
               ca.FechaRespuesta,
               ca.Respondida,
               (u.Nombre || ' ' || u.Apellido) as NombreUsuario,
-              datetime('now') as FechaCreacion
+              NOW() as FechaCreacion
        FROM centroayuda ca
        LEFT JOIN usuario u ON ca.Perfil = u.IdUsuario
        ORDER BY ca.IdAyuda DESC`
@@ -5804,9 +5804,9 @@ app.post('/api/admin/pqr/responder', verificarAdmin, async (req, res) => {
 
     // Actualizar la PQR con la respuesta
     await queryPromise(
-      `UPDATE centroayuda 
-       SET Respuesta = ?, 
-           FechaRespuesta = datetime('now'),
+        `UPDATE centroayuda 
+         SET Respuesta = ?, 
+           FechaRespuesta = NOW(),
            Respondida = 1
        WHERE IdAyuda = ?`,
       [respuesta, idPQR]
