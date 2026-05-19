@@ -2422,7 +2422,7 @@ app.post('/api/publicar', uploadPublicacion.array('imagenesProducto', 5), async 
     // 🔹 Primero insertamos una publicación "temporal" sin imágenes
     const [resultPub] = await connection.query(
       `
-      INSERT INTO Publicacion (Comerciante, NombreProducto, Descripcion, Categoria, Precio, Stock, ImagenProducto)
+      INSERT INTO publicacion (Comerciante, NombreProducto, Descripcion, Categoria, Precio, Stock, ImagenProducto)
       VALUES (?, ?, ?, ?, ?, ?, '[]')
       `,
       [nitComercio, nombreProducto, descripcionProducto, idCategoria, precioProducto, cantidadProducto]
@@ -2457,14 +2457,14 @@ app.post('/api/publicar', uploadPublicacion.array('imagenesProducto', 5), async 
 
     // 🔹 Actualizar publicación con rutas finales
     await connection.query(
-      'UPDATE Publicacion SET ImagenProducto = ? WHERE IdPublicacion = ?',
+      'UPDATE publicacion SET ImagenProducto = ? WHERE IdPublicacion = ?',
       [imagenFinal, idPublicacion]
     );
 
     // 🔹 Insertar producto vinculado
     await connection.query(
       `
-      INSERT INTO Producto (PublicacionComercio, NombreProducto, Descripcion, IdCategoria, Precio, Stock)
+      INSERT INTO producto (PublicacionComercio, NombreProducto, Descripcion, IdCategoria, Precio, Stock)
       VALUES (?, ?, ?, ?, ?, ?)
       `,
       [idPublicacion, nombreProducto, descripcionProducto, idCategoria, precioProducto, cantidadProducto]
@@ -2773,7 +2773,7 @@ app.put('/api/publicaciones/:id', uploadEditar.array('imagenesNuevas', 10), asyn
 
     // 🔹 5️⃣ Actualizar la publicación en la base de datos
     const queryUpdate = `
-      UPDATE Publicacion
+      UPDATE publicacion
       SET NombreProducto = ?, Precio = ?, Categoria = ?, Descripcion = ?, ImagenProducto = ?
       WHERE IdPublicacion = ? AND Comerciante = ?
     `;
@@ -3549,7 +3549,7 @@ app.post('/api/carrito', async (req, res) => {
 
         // 🔹 Insertar en la tabla Carrito
         await pool.query(
-            `INSERT INTO Carrito (UsuarioNat, Publicacion, Cantidad, SubTotal, Estado)
+            `INSERT INTO carrito (UsuarioNat, Publicacion, Cantidad, SubTotal, Estado)
              VALUES (?, ?, 1, ?, 'Pendiente')`,
             [idUsuario, idPublicacion, precio]
         );
@@ -3573,7 +3573,7 @@ app.post('/api/opiniones', async (req, res) => {
 
     // Insertar en la tabla Opiniones
     const [resultado] = await pool.query(
-      `INSERT INTO Opiniones (UsuarioNatural, Publicacion, NombreUsuario, Comentario, Calificacion)
+      `INSERT INTO opiniones (UsuarioNatural, Publicacion, NombreUsuario, Comentario, Calificacion)
        VALUES (?, ?, ?, ?, ?)`,
       [usuarioId, idPublicacion, nombreUsuario, comentario, calificacion]
     );
@@ -3652,7 +3652,7 @@ app.get('/api/carrito', async (req, res) => {
         p.Precio,
         c.Cantidad,
         (p.Precio * c.Cantidad) AS Total
-      FROM Carrito c
+      FROM carrito c
       JOIN publicacion p ON c.Publicacion = p.IdPublicacion
       WHERE c.UsuarioNat = ? AND c.Estado = 'Pendiente'
     `, [usuario.id]);
@@ -3672,7 +3672,7 @@ app.put('/api/carrito/:id', async (req, res) => {
 
   try {
     await pool.query(
-      `UPDATE Carrito SET Cantidad = ?, SubTotal = (Cantidad * SubTotal / Cantidad) WHERE IdCarrito = ?`,
+      `UPDATE carrito SET Cantidad = ?, SubTotal = (Cantidad * SubTotal / Cantidad) WHERE IdCarrito = ?`,
       [cantidad, id]
     );
     res.json({ msg: 'Cantidad actualizada' });
@@ -3687,7 +3687,7 @@ app.put('/api/carrito/:id', async (req, res) => {
 app.delete('/api/carrito/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    await pool.query('DELETE FROM Carrito WHERE IdCarrito = ?', [id]);
+    await pool.query('DELETE FROM carrito WHERE IdCarrito = ?', [id]);
     res.json({ msg: 'Producto eliminado' });
   } catch (err) {
     console.error('❌ Error al eliminar producto:', err);
@@ -3722,7 +3722,7 @@ app.get('/api/proceso-compra', async (req, res) => {
          u.IdUsuario AS IdComercioUsuario,
          u.Nombre AS NombreUsuarioComercio,
          u.Apellido AS ApellidoUsuarioComercio
-       FROM Carrito c
+      FROM carrito c
        JOIN publicacion p ON c.Publicacion = p.IdPublicacion
        JOIN comerciante cm ON p.Comerciante = cm.NitComercio
        JOIN usuario u ON cm.Comercio = u.IdUsuario
@@ -4664,7 +4664,7 @@ app.put("/api/actualizarPerfilPrestador/:idUsuario", uploadPublicacionPrestador.
 
     // ✅ Actualizar datos en la base
     await pool.query(
-      `UPDATE Usuario 
+      `UPDATE usuario 
       SET Nombre = ?, Apellido = ?, Correo = ?, Telefono = ?, FotoPerfil = ?
       WHERE IdUsuario = ?`,
       [
@@ -5001,7 +5001,7 @@ app.post('/api/opiniones-grua', async (req, res) => {
     }
 
     const [resultado] = await pool.query(
-      `INSERT INTO OpinionesGrua (UsuarioNatural, PublicacionGrua, NombreUsuario, Comentario, Calificacion)
+      `INSERT INTO opinionesgrua (UsuarioNatural, PublicacionGrua, NombreUsuario, Comentario, Calificacion)
        VALUES (?, ?, ?, ?, ?)`,
       [usuarioId, idPublicacionGrua, nombreUsuario, comentario, calificacion]
     );
@@ -5271,7 +5271,7 @@ app.delete('/api/admin/usuario/:id', verificarAdmin, async (req, res) => {
     await eliminarSeguro('DELETE FROM opiniones WHERE UsuarioNatural = ?', [id], 'Opiniones eliminadas');
     
     // 4. Eliminar opiniones sobre grúas del usuario
-    await eliminarSeguro('DELETE FROM OpinionesGrua WHERE UsuarioNatural = ?', [id], 'Opiniones grúas eliminadas');
+    await eliminarSeguro('DELETE FROM opinionesgrua WHERE UsuarioNatural = ?', [id], 'Opiniones grúas eliminadas');
     
     // 5. Eliminar PQRs
     await eliminarSeguro('DELETE FROM centroayuda WHERE Perfil = ?', [id], 'PQRs eliminadas');
@@ -5378,7 +5378,7 @@ app.delete('/api/admin/usuario/:id', verificarAdmin, async (req, res) => {
           
           // Eliminar opiniones sobre estas publicaciones de grúa
           await eliminarSeguro(
-            `DELETE FROM OpinionesGrua WHERE PublicacionGrua IN (${placeholders})`,
+            `DELETE FROM opinionesgrua WHERE PublicacionGrua IN (${placeholders})`,
             gruaIds,
             'Opiniones de grúas eliminadas'
           );
@@ -5599,8 +5599,8 @@ app.delete('/api/admin/publicacion/:id', verificarAdmin, async (req, res) => {
       // Eliminar solicitudes relacionadas
       await queryPromise('DELETE FROM controlagendaservicios WHERE PublicacionGrua = ?', [id]);
       
-      // Eliminar opiniones de grúa si existen (tabla OpinionesGrua)
-      await queryPromise('DELETE FROM OpinionesGrua WHERE PublicacionGrua = ?', [id]);
+      // Eliminar opiniones de grúa si existen (tabla opinionesgrua)
+      await queryPromise('DELETE FROM opinionesgrua WHERE PublicacionGrua = ?', [id]);
       
       // Eliminar la publicación de grúa
       await queryPromise('DELETE FROM publicaciongrua WHERE IdPublicacionGrua = ?', [id]);
