@@ -727,7 +727,6 @@ app.get('/api/historial', async (req, res) => {
         ca.HoraServicio AS horaEntrega,
         ca.ModoServicio AS modoEntrega,
         NULL AS fechaModificada,
-        ca.NotificacionVista AS notificacionVista,
         ca.IdSolicitud AS idSolicitudComercio,
         uc.Telefono AS telefonoComercio,
         com.NombreComercio AS nombreComercio
@@ -3184,9 +3183,8 @@ app.put('/api/actualizar-fecha-pedido', async (req, res) => {
 
   try {
     // Actualizar fecha y hora en controlagendacomercio
-    // Marcar NotificacionVista = 0 para que el usuario vea la notificación
     await queryPromise(
-      'UPDATE controlagendacomercio SET FechaServicio = ?, HoraServicio = ?, NotificacionVista = 0 WHERE IdSolicitud = ?',
+      'UPDATE controlagendacomercio SET FechaServicio = ?, HoraServicio = ? WHERE IdSolicitud = ?',
       [fecha, hora, id]
     );
 
@@ -3227,30 +3225,6 @@ app.put('/api/confirmar-fecha-pedido', async (req, res) => {
   } catch (error) {
     console.error('Error al confirmar fecha:', error);
     res.status(500).json({ error: 'Error al confirmar fecha' });
-  }
-});
-
-// Endpoint para marcar notificación de cambio de fecha de comercio como vista
-app.put('/api/comercio/notificacion-vista/:id', async (req, res) => {
-  const { id } = req.params;
-
-  if (!id) {
-    return res.status(400).json({ error: 'ID de solicitud requerido' });
-  }
-
-  try {
-    await queryPromise(
-      'UPDATE controlagendacomercio SET NotificacionVista = 1 WHERE IdSolicitud = ?',
-      [id]
-    );
-
-    res.json({ 
-      success: true,
-      message: 'Notificación marcada como vista' 
-    });
-  } catch (error) {
-    console.error('Error al marcar notificación:', error);
-    res.status(500).json({ error: 'Error al marcar notificación' });
   }
 });
 
