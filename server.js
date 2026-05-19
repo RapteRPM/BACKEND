@@ -2993,7 +2993,7 @@ app.put(
 
       // 4️⃣ Actualizar información del comercio asociado
       await pool.query(
-        `UPDATE Comerciante
+        `UPDATE comerciante
          SET NombreComercio = ?, NitComercio = ?, Direccion = ?, Barrio = ?, RedesSociales = ?,
              DiasAtencion = ?, HoraInicio = ?, HoraFin = ?
          WHERE Comercio = ?`,
