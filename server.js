@@ -128,17 +128,15 @@ const port = process.env.PORT || 3000;
 // 🌐 Configuración de CORS
 // ===============================
 // Obtener URLs del frontend desde variables de entorno o usar valores por defecto
-const allowedOrigins = [...new Set([
-  ...(process.env.FRONTEND_URLS
-    ? process.env.FRONTEND_URLS.split(',').map((origin) => origin.trim()).filter(Boolean)
-    : [
-        'http://localhost:5500',
-        'http://127.0.0.1:5500',
-        'http://localhost:5501',
-        'http://127.0.0.1:5501'
-      ]),
-  'https://perfil-front-25cbf2.gitlab.io'
-])];
+const allowedOrigins = process.env.FRONTEND_URLS 
+  ? process.env.FRONTEND_URLS.split(',')
+  : [
+      'https://perfil-front-25cbf2.gitlab.io',
+      'http://localhost:5500',
+      'http://127.0.0.1:5500',
+      'http://localhost:5501',
+      'http://127.0.0.1:5501'
+    ];
 
 const corsOptions = {
   origin: function (origin, callback) {
@@ -169,7 +167,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
 
 // Railway / proxies inversos necesitan esto para que secure cookies funcionen bien
 app.set('trust proxy', 1);
