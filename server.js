@@ -50,7 +50,7 @@ if (isProduction && !configuredImageStoragePath) {
 // Asegurar al menos una carpeta física para servir/subir imágenes
 fs.mkdirSync(uniqueImageRoots[0], { recursive: true });
 
-function normalizeImagePublicPath(rawPath, fallbackPath = '/imagen/placeholder.png') {
+function normalizeImagePublicPath(rawPath, fallbackPath = '/Imagen/placeholder.png') {
   if (!rawPath || typeof rawPath !== 'string') {
     return fallbackPath;
   }
@@ -73,7 +73,7 @@ function normalizeImagePublicPath(rawPath, fallbackPath = '/imagen/placeholder.p
     return fallbackPath;
   }
 
-  return `/imagen/${ruta}`;
+  return `/Imagen/${ruta}`;
 }
 
 function resolveImageDiskPath(publicPath) {
@@ -86,7 +86,7 @@ function resolveImageDiskPath(publicPath) {
     return null;
   }
 
-  const relative = normalizedPublic.replace(/^\/imagen\//i, '');
+  const relative = normalizedPublic.replace(/^\/Imagen\//i, '');
   for (const root of uniqueImageRoots) {
     const absoluteCandidate = path.join(root, relative);
     if (fs.existsSync(absoluteCandidate)) {
@@ -201,8 +201,8 @@ app.use(express.json());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 for (const root of uniqueImageRoots) {
-  app.use('/imagen', express.static(root));
   app.use('/Imagen', express.static(root));
+  app.use('/imagen', express.static(root));
   app.use('/image', express.static(root));
 }
 
@@ -273,20 +273,20 @@ app.get('/api/diagnostico-imagenes', async (req, res) => {
     };
 
     for (const usuario of usuarios) {
-      revisarRuta('usuario.FotoPerfil', usuario.IdUsuario, usuario.FotoPerfil, '/imagen/imagen_perfil.png');
+      revisarRuta('usuario.FotoPerfil', usuario.IdUsuario, usuario.FotoPerfil, '/Imagen/imagen_perfil.png');
     }
 
     for (const pub of publicaciones) {
-      const rutas = normalizeImageList(pub.ImagenProducto, '/imagen/default_producto.jpg');
+      const rutas = normalizeImageList(pub.ImagenProducto, '/Imagen/default_producto.jpg');
       for (const ruta of rutas) {
-        revisarRuta('publicacion.ImagenProducto', pub.IdPublicacion, ruta, '/imagen/default_producto.jpg');
+        revisarRuta('publicacion.ImagenProducto', pub.IdPublicacion, ruta, '/Imagen/default_producto.jpg');
       }
     }
 
     for (const grua of gruas) {
-      const rutas = normalizeImageList(grua.FotoPublicacion, '/imagen/default_grua.jpg');
+      const rutas = normalizeImageList(grua.FotoPublicacion, '/Imagen/default_grua.jpg');
       for (const ruta of rutas) {
-        revisarRuta('publicaciongrua.FotoPublicacion', grua.IdPublicacionGrua, ruta, '/imagen/default_grua.jpg');
+        revisarRuta('publicaciongrua.FotoPublicacion', grua.IdPublicacionGrua, ruta, '/Imagen/default_grua.jpg');
       }
     }
 
@@ -502,9 +502,9 @@ app.get('/api/usuario-actual', verificarSesion, async (req, res) => {
 
     // 🖼️ Ruta de la imagen - usar directamente de la BD
     const tipo = user.TipoUsuario;
-    let fotoRutaFinal = normalizeImagePublicPath(user.FotoPerfil, '/imagen/imagen_perfil.png');
+    let fotoRutaFinal = normalizeImagePublicPath(user.FotoPerfil, '/Imagen/imagen_perfil.png');
     if (!resolveImageDiskPath(fotoRutaFinal)) {
-      fotoRutaFinal = '/imagen/imagen_perfil.png';
+      fotoRutaFinal = '/Imagen/imagen_perfil.png';
     }
 
     // ✅ Respuesta al frontend
@@ -3402,7 +3402,7 @@ app.get('/api/publicaciones_publicas', async (req, res) => {
 
     // 🔹 Parsear imágenes y normalizar rutas
     const publicaciones = rows.map(pub => {
-      const imagenes = normalizeImageList(pub.ImagenProducto, '/imagen/default_producto.jpg');
+      const imagenes = normalizeImageList(pub.ImagenProducto, '/Imagen/default_producto.jpg');
 
       return {
         idPublicacion: pub.IdPublicacion,
@@ -4290,7 +4290,7 @@ app.get('/api/publicaciones-grua', async (req, res) => {
 
     const publicacionesNormalizadas = publicaciones.map((pub) => ({
       ...pub,
-      FotoPublicacion: normalizeImageList(pub.FotoPublicacion, '/imagen/default_grua.jpg')
+      FotoPublicacion: normalizeImageList(pub.FotoPublicacion, '/Imagen/default_grua.jpg')
     }));
 
     res.json(publicacionesNormalizadas);
@@ -4425,7 +4425,7 @@ app.get('/api/publicaciones-grua/editar/:id', async (req, res) => {
     }
 
     const pub = publicacionRows[0];
-    pub.FotoPublicacion = normalizeImageList(pub.FotoPublicacion, '/imagen/default_grua.jpg');
+    pub.FotoPublicacion = normalizeImageList(pub.FotoPublicacion, '/Imagen/default_grua.jpg');
 
     res.json(pub);
   } catch (err) {
@@ -4913,7 +4913,7 @@ app.get("/api/marketplace-gruas", async (req, res) => {
 
     const publicacionesNormalizadas = publicaciones.map((pub) => ({
       ...pub,
-      FotoPublicacion: normalizeImageList(pub.FotoPublicacion, '/imagen/default_grua.jpg')
+      FotoPublicacion: normalizeImageList(pub.FotoPublicacion, '/Imagen/default_grua.jpg')
     }));
 
     res.json(publicacionesNormalizadas);
@@ -4958,7 +4958,7 @@ app.get("/api/publicaciones-grua/:id", async (req, res) => {
 
     const detalleNormalizado = {
       ...rows[0],
-      FotoPublicacion: normalizeImageList(rows[0].FotoPublicacion, '/imagen/default_grua.jpg')
+      FotoPublicacion: normalizeImageList(rows[0].FotoPublicacion, '/Imagen/default_grua.jpg')
     };
 
     res.json(detalleNormalizado);
