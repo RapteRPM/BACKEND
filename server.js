@@ -131,6 +131,7 @@ const port = process.env.PORT || 3000;
 const allowedOrigins = process.env.FRONTEND_URLS 
   ? process.env.FRONTEND_URLS.split(',')
   : [
+      'https://perfil-front-25cbf2.gitlab.io',
       'http://localhost:5500',
       'http://127.0.0.1:5500',
       'http://localhost:5501',
