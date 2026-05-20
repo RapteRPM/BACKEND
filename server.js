@@ -206,6 +206,11 @@ for (const root of uniqueImageRoots) {
   app.use('/image', express.static(root));
 }
 
+// Mapeo explícito adicional usando process.cwd() para entornos donde __dirname difiera
+app.use('/imagen', express.static(path.join(process.cwd(), 'public', 'imagen')));
+app.use('/Imagen', express.static(path.join(process.cwd(), 'public', 'Imagen')));
+app.use('/image', express.static(path.join(process.cwd(), 'public', 'image')));
+
 
 
 // ===============================
@@ -5865,4 +5870,25 @@ app.post('/api/admin/pqr/responder', verificarAdmin, async (req, res) => {
     console.error('❌ Error al responder PQR:', error);
     res.status(500).json({ error: 'Error en el servidor al responder PQR.' });
   }
+});
+
+// Endpoint temporal de diagnóstico para verificar carpeta de imágenes
+app.get('/debug/static-imagen', (req, res) => {
+  const cwd = process.cwd();
+  const carpeta = path.join(cwd, 'public', 'imagen');
+  let exists = false;
+  let count = 0;
+  let sample = [];
+  try {
+    exists = fs.existsSync(carpeta);
+    if (exists) {
+      const files = fs.readdirSync(carpeta, { withFileTypes: true });
+      count = files.length;
+      sample = files.slice(0, 20).map(f => f.name);
+    }
+  } catch (e) {
+    console.error('Error diagnosticando carpeta imagen:', e);
+  }
+
+  res.json({ cwd, carpeta, exists, count, sample });
 });
