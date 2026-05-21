@@ -61,6 +61,11 @@ function normalizeImagePublicPath(rawPath, fallbackPath = '/imagen/placeholder.p
     return fallbackPath;
   }
 
+  const publicMatch = ruta.match(/(?:^|\/)public\/(.+)$/i);
+  if (publicMatch) {
+    ruta = publicMatch[1];
+  }
+
   if (/^https?:\/\//i.test(ruta) || /^data:/i.test(ruta)) {
     return ruta;
   }
@@ -106,7 +111,10 @@ function extractImageCandidates(rawValue) {
         return extractImageCandidates(parsed);
       }
     } catch {
-      const quotedValues = [...trimmed.matchAll(/"([^"]+)"/g)]
+      const quotedValues = [
+        ...trimmed.matchAll(/"([^"]+)"/g),
+        ...trimmed.matchAll(/'([^']+)'/g)
+      ]
         .map((match) => match[1].trim())
         .filter(Boolean);
 
@@ -1474,6 +1482,9 @@ import fetch from 'node-fetch'; // si no lo tienes instalado: npm install node-f
 const tempDir = path.join(process.cwd(), 'public', 'imagen', 'temp');
 fs.mkdirSync(tempDir, { recursive: true });
 
+const tempDirGrua = path.join(process.cwd(), 'public', 'imagen', 'temp_grua');
+fs.mkdirSync(tempDirGrua, { recursive: true });
+
 // Guardamos primero en temp
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -2472,7 +2483,7 @@ app.post('/api/publicar', uploadPublicacion.array('imagenesProducto', 5), async 
         const destino = path.join(carpetaPublicacion, file.filename);
         fs.renameSync(file.path, destino);
         imagenes.push(
-          path.join('imagen', 'Comerciante', usuario.id.toString(), 'publicaciones', idPublicacion.toString(), file.filename)
+          path.posix.join('imagen', 'Comerciante', usuario.id.toString(), 'publicaciones', idPublicacion.toString(), file.filename)
         );
       });
     }
@@ -2769,9 +2780,43 @@ app.put('/api/publicaciones/:id', uploadEditar.array('imagenesNuevas', 10), asyn
 
     const nitComercio = comercio[0].NitComercio;
 
-    // 🔹 2️⃣ Rutas de nuevas imágenes
-    const nuevasImagenes = (req.files || []).map(f => f.path.replace(/\\/g, '/'));
-    const todasLasImagenes = [...imagenesActuales, ...nuevasImagenes];
+    // 🔹 2️⃣ Preparar carpeta final de imágenes
+    const carpetaPublicacion = path.join(
+      process.cwd(),
+      'public', 'imagen', 'Comerciante', usuario.id.toString(), 'publicaciones', idPublicacion.toString()
+    );
+    fs.mkdirSync(carpetaPublicacion, { recursive: true });
+
+    const imagenesActualesNormalizadas = normalizeImageList(imagenesActuales, '/imagen/default_producto.jpg')
+      .filter((ruta) => ruta !== '/imagen/default_producto.jpg');
+
+    const nuevasImagenes = [];
+
+    if (Array.isArray(req.files) && req.files.length > 0) {
+      req.files.forEach((file) => {
+        const destino = path.join(carpetaPublicacion, file.filename);
+        fs.renameSync(file.path, destino);
+
+        nuevasImagenes.push(
+          path.posix.join(
+            'imagen',
+            'Comerciante',
+            usuario.id.toString(),
+            'publicaciones',
+            idPublicacion.toString(),
+            file.filename
+          )
+        );
+      });
+    }
+
+    const todasLasImagenes = [...imagenesActualesNormalizadas, ...nuevasImagenes]
+      .map((ruta) => normalizeImagePublicPath(ruta, '/imagen/default_producto.jpg'));
+
+    const imagenesFinales = todasLasImagenes.length > 0
+      ? todasLasImagenes
+      : ['/imagen/default_producto.jpg'];
+
     const rutaBase = path.join(__dirname, 'public');
 
     // 🔹 3️⃣ Obtener imágenes anteriores para eliminar las que ya no están
@@ -2786,15 +2831,16 @@ app.put('/api/publicaciones/:id', uploadEditar.array('imagenesNuevas', 10), asyn
 
     let anteriores = [];
     try {
-      anteriores = JSON.parse(resultPub[0].ImagenProducto || '[]');
+      anteriores = normalizeImageList(resultPub[0].ImagenProducto, '/imagen/default_producto.jpg')
+        .filter((ruta) => ruta !== '/imagen/default_producto.jpg');
     } catch {
       anteriores = [];
     }
 
     // 🔹 4️⃣ Eliminar del disco las imágenes quitadas por el usuario
-    const eliminadas = anteriores.filter(img => !imagenesActuales.includes(img));
+    const eliminadas = anteriores.filter((img) => !imagenesFinales.includes(img));
     eliminadas.forEach(imgPath => {
-      const fullPath = path.join(rutaBase, imgPath);
+      const fullPath = path.join(rutaBase, imgPath.replace(/^\/(?:imagen|Imagen)\//i, ''));
       if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
     });
 
@@ -2810,7 +2856,7 @@ app.put('/api/publicaciones/:id', uploadEditar.array('imagenesNuevas', 10), asyn
       precio,
       categoria,
       descripcion,
-      JSON.stringify(todasLasImagenes),
+      JSON.stringify(imagenesFinales),
       idPublicacion,
       nitComercio,
     ]);
@@ -4167,16 +4213,7 @@ app.get('/api/perfil-prestador', async (req, res) => {
 
 // 📦 Configuración específica para publicaciones de grúa
 const storagePublicacionPrestador = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const usuario = req.session.usuario;
-    const dir = path.join(__dirname, 'public', 'Publicaciones', usuario.id.toString());
-
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-
-    cb(null, dir);
-  },
+  destination: (req, file, cb) => cb(null, tempDirGrua),
   filename: (req, file, cb) => {
     const nombreUnico = Date.now() + '-' + Math.round(Math.random() * 1e9) + path.extname(file.originalname);
     cb(null, nombreUnico);
@@ -4513,13 +4550,9 @@ app.put('/api/publicaciones-grua/:id', uploadPublicacionPrestador.array('imagene
     );
     fs.mkdirSync(carpetaPublicacion, { recursive: true });
 
-    // Parsear las imágenes actuales que NO se eliminaron
-    let imagenesMantenidas = [];
-    try {
-      imagenesMantenidas = imagenesActuales ? JSON.parse(imagenesActuales) : [];
-    } catch (e) {
-      imagenesMantenidas = [];
-    }
+    // Parsear y normalizar las imágenes actuales que se conservan
+    const imagenesMantenidas = normalizeImageList(imagenesActuales, '/imagen/default_grua.jpg')
+      .filter((ruta) => ruta !== '/imagen/default_grua.jpg');
 
     const nuevasImagenes = [...imagenesMantenidas];
 
@@ -4541,10 +4574,34 @@ app.put('/api/publicaciones-grua/:id', uploadPublicacionPrestador.array('imagene
       });
     }
 
+    const imagenesFinales = nuevasImagenes.length > 0
+      ? nuevasImagenes.map((ruta) => normalizeImagePublicPath(ruta, '/imagen/default_grua.jpg'))
+      : ['/imagen/default_grua.jpg'];
+
+    let imagenesPrevias = [];
+    try {
+      const [previas] = await pool.query(
+        'SELECT FotoPublicacion FROM publicaciongrua WHERE IdPublicacionGrua = ? AND Servicio = ? LIMIT 1',
+        [idPublicacion, idServicio]
+      );
+      if (previas.length > 0) {
+        imagenesPrevias = normalizeImageList(previas[0].FotoPublicacion, '/imagen/default_grua.jpg')
+          .filter((ruta) => ruta !== '/imagen/default_grua.jpg');
+      }
+    } catch {
+      imagenesPrevias = [];
+    }
+
+    const imagenesAEliminar = imagenesPrevias.filter((ruta) => !imagenesFinales.includes(ruta));
+    imagenesAEliminar.forEach((ruta) => {
+      const fullPath = path.join(process.cwd(), 'public', ruta.replace(/^\/(?:imagen|Imagen)\//i, ''));
+      if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
+    });
+
     // Actualizar con todas las imágenes (mantenidas + nuevas)
     await pool.query(
       'UPDATE publicaciongrua SET FotoPublicacion = ? WHERE IdPublicacionGrua = ?',
-      [JSON.stringify(nuevasImagenes), idPublicacion]
+      [JSON.stringify(imagenesFinales), idPublicacion]
     );
 
     res.json({ mensaje: '✅ Publicación actualizada correctamente' });
