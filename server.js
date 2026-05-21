@@ -2561,6 +2561,13 @@ app.get('/api/publicaciones', async (req, res) => {
       ImagenProducto: normalizeImageList(pub.ImagenProducto, '/imagen/default_producto.jpg')
     }));
 
+    for (const pub of publicacionesNormalizadas) {
+      pub.ImagenesProducto = pub.ImagenProducto;
+      pub.ImagenProducto = pub.ImagenProducto[0] || '/imagen/default_producto.jpg';
+      pub.ImagenPrincipal = pub.ImagenProducto;
+      pub.imagenPrincipal = pub.ImagenProducto;
+    }
+
     res.json(publicacionesNormalizadas);
   } catch (err) {
     console.error('❌ Error al obtener las publicaciones:', err);
@@ -4369,7 +4376,12 @@ app.get('/api/publicaciones-grua', async (req, res) => {
       FotoPublicacion: normalizeImageList(pub.FotoPublicacion, '/imagen/default_grua.jpg')
     }));
     for (const pub of publicacionesNormalizadas) {
+      pub.imagenes = pub.FotoPublicacion;
+      pub.imagenPrincipal = pub.FotoPublicacion[0] || '/imagen/default_grua.jpg';
+      pub.ImagenPrincipal = pub.imagenPrincipal;
+      pub.FotoPublicacionLista = pub.FotoPublicacion;
       pub.FotoPublicacionPrincipal = pub.FotoPublicacion[0] || '/imagen/default_grua.jpg';
+      pub.FotoPublicacion = pub.FotoPublicacionPrincipal;
     }
 
     res.json(publicacionesNormalizadas);
@@ -5018,7 +5030,12 @@ app.get("/api/marketplace-gruas", async (req, res) => {
       FotoPublicacion: normalizeImageList(pub.FotoPublicacion, '/imagen/default_grua.jpg')
     }));
     for (const pub of publicacionesNormalizadas) {
+      pub.imagenes = pub.FotoPublicacion;
+      pub.imagenPrincipal = pub.FotoPublicacion[0] || '/imagen/default_grua.jpg';
+      pub.ImagenPrincipal = pub.imagenPrincipal;
+      pub.FotoPublicacionLista = pub.FotoPublicacion;
       pub.FotoPublicacionPrincipal = pub.FotoPublicacion[0] || '/imagen/default_grua.jpg';
+      pub.FotoPublicacion = pub.FotoPublicacionPrincipal;
     }
 
     res.json(publicacionesNormalizadas);
@@ -5065,7 +5082,12 @@ app.get("/api/publicaciones-grua/:id", async (req, res) => {
       ...rows[0],
       FotoPublicacion: normalizeImageList(rows[0].FotoPublicacion, '/imagen/default_grua.jpg')
     };
+    detalleNormalizado.imagenes = detalleNormalizado.FotoPublicacion;
+    detalleNormalizado.imagenPrincipal = detalleNormalizado.FotoPublicacion[0] || '/imagen/default_grua.jpg';
+    detalleNormalizado.ImagenPrincipal = detalleNormalizado.imagenPrincipal;
     detalleNormalizado.FotoPublicacionPrincipal = detalleNormalizado.FotoPublicacion[0] || '/imagen/default_grua.jpg';
+    detalleNormalizado.FotoPublicacionLista = detalleNormalizado.FotoPublicacion;
+    detalleNormalizado.FotoPublicacion = detalleNormalizado.FotoPublicacionPrincipal;
 
     res.json(detalleNormalizado);
   } catch (err) {
