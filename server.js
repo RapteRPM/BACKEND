@@ -51,11 +51,12 @@ if (isProduction && !configuredImageStoragePath) {
 fs.mkdirSync(uniqueImageRoots[0], { recursive: true });
 
 function normalizeImagePublicPath(rawPath, fallbackPath = '/Imagen/placeholder.png') {
-  if (!rawPath || typeof rawPath !== 'string') {
+  const imageCandidates = extractImageCandidates(rawPath);
+  if (imageCandidates.length === 0) {
     return fallbackPath;
   }
 
-  let ruta = rawPath.trim().replace(/\\/g, '/');
+  let ruta = imageCandidates[0].trim().replace(/\\/g, '/');
   if (!ruta) {
     return fallbackPath;
   }
@@ -74,6 +75,48 @@ function normalizeImagePublicPath(rawPath, fallbackPath = '/Imagen/placeholder.p
   }
 
   return `/Imagen/${ruta}`;
+}
+
+function extractImageCandidates(rawValue) {
+  if (!rawValue) {
+    return [];
+  }
+
+  if (Array.isArray(rawValue)) {
+    return rawValue.flatMap((item) => extractImageCandidates(item));
+  }
+
+  if (typeof rawValue !== 'string') {
+    return [];
+  }
+
+  const trimmed = rawValue.trim();
+  if (!trimmed) {
+    return [];
+  }
+
+  if (trimmed.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed.flatMap((item) => extractImageCandidates(item));
+      }
+
+      if (typeof parsed === 'string') {
+        return extractImageCandidates(parsed);
+      }
+    } catch {
+      const quotedValues = [...trimmed.matchAll(/"([^"]+)"/g)]
+        .map((match) => match[1].trim())
+        .filter(Boolean);
+
+      if (quotedValues.length > 0) {
+        return quotedValues;
+      }
+    }
+  }
+
+  return [trimmed.replace(/^"+|"+$/g, '')];
 }
 
 function resolveImageDiskPath(publicPath) {
@@ -98,22 +141,7 @@ function resolveImageDiskPath(publicPath) {
 }
 
 function normalizeImageList(rawValue, fallbackPath) {
-  let rawList = [];
-
-  if (Array.isArray(rawValue)) {
-    rawList = rawValue;
-  } else if (typeof rawValue === 'string') {
-    const trimmed = rawValue.trim();
-    if (trimmed.startsWith('[')) {
-      try {
-        rawList = JSON.parse(trimmed);
-      } catch {
-        rawList = [];
-      }
-    } else if (trimmed) {
-      rawList = [trimmed];
-    }
-  }
+  const rawList = extractImageCandidates(rawValue);
 
   const normalized = rawList
     .map((img) => normalizeImagePublicPath(img, fallbackPath))
@@ -2103,7 +2131,7 @@ app.post('/api/crear-contrasena-con-token', async (req, res) => {
       const pendingDir = path.join(process.cwd(), 'public', 'imagen', 'pendientes', registroPendiente.IdUsuario.toString());
       const finalUserDir = path.join(process.cwd(), 'public', 'imagen', tipoFolder, registroPendiente.IdUsuario.toString());
       
-      let fotoRutaFinal = registroPendiente.FotoPerfil;
+      let fotoRutaFinal = normalizeImagePublicPath(registroPendiente.FotoPerfil, '/imagen/imagen_perfil.png');
       let certRutaFinal = datosPerfil.Certificado || null;
 
       try {
@@ -4025,11 +4053,13 @@ app.get('/api/perfil-prestador', async (req, res) => {
 
     const rutaCarpeta = path.join(__dirname, 'public', 'imagen', tipoCarpeta, user.Documento.toString());
     let fotoRutaFinal = '/imagen/imagen_perfil.png'; // por defecto
+    const fotoPerfilEsperada = normalizeImagePublicPath(user.FotoPerfil, '');
+    const nombreFotoEsperada = fotoPerfilEsperada ? path.basename(fotoPerfilEsperada) : '';
 
     if (fs.existsSync(rutaCarpeta)) {
       const archivos = fs.readdirSync(rutaCarpeta);
       const archivoFoto = archivos.find(
-        f => f.includes(user.FotoPerfil) || f.match(/\.(jpg|jpeg|png|webp)$/i)
+        f => (nombreFotoEsperada && f === nombreFotoEsperada) || (nombreFotoEsperada && f.includes(nombreFotoEsperada)) || f.match(/\.(jpg|jpeg|png|webp)$/i)
       );
       if (archivoFoto) {
         fotoRutaFinal = `/imagen/${tipoCarpeta}/${user.Documento}/${archivoFoto}`;
