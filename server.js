@@ -2559,7 +2559,12 @@ app.get('/api/publicaciones', async (req, res) => {
     );
 
     console.log(`✅ ${publicaciones.length} publicaciones encontradas`);
-    res.json(publicaciones);
+    const publicacionesNormalizadas = publicaciones.map((pub) => ({
+      ...pub,
+      ImagenProducto: normalizeImageList(pub.ImagenProducto, '/imagen/default_producto.jpg')
+    }));
+
+    res.json(publicacionesNormalizadas);
   } catch (err) {
     console.error('❌ Error al obtener las publicaciones:', err);
     res.status(500).json({ error: 'Error interno al obtener las publicaciones.' });
@@ -3132,8 +3137,13 @@ app.get("/api/perfilComerciante/:idUsuario", async (req, res) => {
       return res.status(404).json({ error: "Comerciante no encontrado" });
     }
 
-    console.log(`✅ Perfil comerciante encontrado:`, rows[0]);
-    res.json(rows[0]);
+    const perfilNormalizado = {
+      ...rows[0],
+      FotoPerfil: normalizeImagePublicPath(rows[0].FotoPerfil, '/imagen/imagen_perfil.png')
+    };
+
+    console.log(`✅ Perfil comerciante encontrado:`, perfilNormalizado);
+    res.json(perfilNormalizado);
   } catch (error) {
     console.error("❌ Error al obtener perfil del comerciante:", error);
     res.status(500).json({ error: "Error interno del servidor" });
@@ -3422,8 +3432,13 @@ app.get("/api/perfilNatural/:idUsuario", async (req, res) => {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
 
+    const perfilNormalizado = {
+      ...rows[0],
+      FotoPerfil: normalizeImagePublicPath(rows[0].FotoPerfil, '/imagen/imagen_perfil.png')
+    };
+
     console.log(`✅ Perfil encontrado para: ${rows[0].Nombre} ${rows[0].Apellido}`);
-    res.json(rows[0]);
+    res.json(perfilNormalizado);
   } catch (error) {
     console.error("❌ Error al obtener perfil natural:", error);
     res.status(500).json({ error: "Error interno del servidor" });
@@ -4629,7 +4644,10 @@ app.get("/api/perfilPrestador/:idUsuario", async (req, res) => {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
 
-    res.json(rows[0]);
+    res.json({
+      ...rows[0],
+      FotoPerfil: normalizeImagePublicPath(rows[0].FotoPerfil, '/imagen/imagen_perfil.png')
+    });
   } catch (error) {
     console.error("❌ Error al obtener perfil prestador:", error);
     res.status(500).json({ error: "Error interno del servidor" });
