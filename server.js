@@ -153,7 +153,7 @@ function normalizeImageList(rawValue, fallbackPath) {
 
   const normalized = rawList
     .map((img) => normalizeImagePublicPath(img, fallbackPath))
-    .filter((imgPath) => /^https?:\/\//i.test(imgPath) || /^data:/i.test(imgPath) || resolveImageDiskPath(imgPath));
+    .filter((imgPath) => Boolean(imgPath));
 
   return normalized.length > 0 ? normalized : [fallbackPath];
 }
@@ -534,9 +534,6 @@ app.get('/api/usuario-actual', verificarSesion, async (req, res) => {
     // 🖼️ Ruta de la imagen - usar directamente de la BD
     const tipo = user.TipoUsuario;
     let fotoRutaFinal = normalizeImagePublicPath(user.FotoPerfil, '/imagen/imagen_perfil.png');
-    if (!resolveImageDiskPath(fotoRutaFinal)) {
-      fotoRutaFinal = '/imagen/imagen_perfil.png';
-    }
 
     // ✅ Respuesta al frontend
     res.json({
@@ -3493,7 +3490,8 @@ app.get('/api/publicaciones_publicas', async (req, res) => {
         nombreProducto: pub.nombreProducto,
         precio: pub.Precio,
         categoria: pub.categoria,
-        imagenes
+        imagenes,
+        imagenPrincipal: imagenes[0] || '/imagen/default_producto.jpg'
       };
     });
 
@@ -3570,7 +3568,8 @@ app.get('/api/detallePublicacion/:id', async (req, res) => {
           res.json({
             publicacion: {
               ...resultado[0],
-              ImagenProducto: imagenes
+              ImagenProducto: imagenes,
+              ImagenPrincipal: imagenes[0] || '/imagen/placeholder.png'
             },
             opiniones
           });
@@ -4369,6 +4368,9 @@ app.get('/api/publicaciones-grua', async (req, res) => {
       ...pub,
       FotoPublicacion: normalizeImageList(pub.FotoPublicacion, '/imagen/default_grua.jpg')
     }));
+    for (const pub of publicacionesNormalizadas) {
+      pub.FotoPublicacionPrincipal = pub.FotoPublicacion[0] || '/imagen/default_grua.jpg';
+    }
 
     res.json(publicacionesNormalizadas);
   } catch (err) {
@@ -5015,6 +5017,9 @@ app.get("/api/marketplace-gruas", async (req, res) => {
       ...pub,
       FotoPublicacion: normalizeImageList(pub.FotoPublicacion, '/imagen/default_grua.jpg')
     }));
+    for (const pub of publicacionesNormalizadas) {
+      pub.FotoPublicacionPrincipal = pub.FotoPublicacion[0] || '/imagen/default_grua.jpg';
+    }
 
     res.json(publicacionesNormalizadas);
   } catch (err) {
@@ -5060,6 +5065,7 @@ app.get("/api/publicaciones-grua/:id", async (req, res) => {
       ...rows[0],
       FotoPublicacion: normalizeImageList(rows[0].FotoPublicacion, '/imagen/default_grua.jpg')
     };
+    detalleNormalizado.FotoPublicacionPrincipal = detalleNormalizado.FotoPublicacion[0] || '/imagen/default_grua.jpg';
 
     res.json(detalleNormalizado);
   } catch (err) {
@@ -5626,10 +5632,24 @@ app.get('/api/admin/publicaciones', verificarAdmin, async (req, res) => {
 
     // Combinar ambos arrays
     const publicaciones = [...publicacionesComercios, ...publicacionesGruas];
+
+    const publicacionesNormalizadas = publicaciones.map((pub) => {
+      const esGrua = Boolean(pub.EsGrua);
+      const imagenes = normalizeImageList(
+        pub.ImagenPrincipal,
+        esGrua ? '/imagen/default_grua.jpg' : '/imagen/default_producto.jpg'
+      );
+
+      return {
+        ...pub,
+        ImagenPrincipal: imagenes[0] || (esGrua ? '/imagen/default_grua.jpg' : '/imagen/default_producto.jpg'),
+        Imagenes: imagenes
+      };
+    });
     
     console.log(`✅ Total publicaciones: ${publicaciones.length} (Comercios: ${publicacionesComercios.length}, Grúas: ${publicacionesGruas.length})`);
 
-    res.json({ publicaciones });
+    res.json({ publicaciones: publicacionesNormalizadas });
 
   } catch (error) {
     console.error('❌ Error al obtener publicaciones:', error);
